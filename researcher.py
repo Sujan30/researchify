@@ -149,7 +149,7 @@ class StatisticalAnalyzer:
         return results
 
 class NvidiaLlamaClient:
-    def __init__(self, api_key: str = "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"):
+    def __init__(self, api_key: str = os.getenv("NVIDIA_API_KEY")):
         """Initialize NVIDIA Nemotron client using OpenAI format"""
         self.client = OpenAI(
             base_url="https://integrate.api.nvidia.com/v1",

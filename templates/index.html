@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Research Assistant - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .error {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 5px;
+            border-left: 4px solid #f44336;
+        }
+        
+        .result-section {
+            margin-bottom: 15px;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .result-value {
+            background: white;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .explanation {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+            margin-top: 20px;
+        }
+        
+        .badge {
+            background: #4CAF50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .badge.simulated {
+            background: #FF9800;
+        }
+        
+        .examples {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 5px;
+        }
+        
+        .examples h3 {
+            margin-top: 0;
+            color: #e65100;
+        }
+        
+        .example-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+        
+        .example-item:hover {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 AI Research Assistant</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Enter a research question and get AI-powered statistical analysis
+        </p>
+        
+        <div class="input-group">
+            <label for="questionInput">Research Question:</label>
+            <textarea 
+                id="questionInput" 
+                placeholder="e.g., Does studying more hours lead to better test scores?"
+            ></textarea>
+        </div>
+        
+        <button id="analyzeBtn" onclick="analyzeQuestion()">
+            🚀 Analyze Research Question
+        </button>
+        
+        <div id="loading" class="loading">
+            <p>🤖 AI agents are processing your question...</p>
+            <p><small>This may take 30-60 seconds...</small></p>
+        </div>
+        
+        <div id="error" class="error"></div>
+        
+        <div id="results" class="results">
+            <h2>📈 Analysis Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <div class="examples">
+            <h3>📝 Example Questions to Try:</h3>
+            <div class="example-item" onclick="setExample('Does studying more hours lead to better test scores?')">
+                Does studying more hours lead to better test scores?
+            </div>
+            <div class="example-item" onclick="setExample('Does higher marketing spend increase sales revenue?')">
+                Does higher marketing spend increase sales revenue?
+            </div>
+            <div class="example-item" onclick="setExample('Is there a relationship between temperature and ice cream sales?')">
+                Is there a relationship between temperature and ice cream sales?
+            </div>
+            <div class="example-item" onclick="setExample('Do higher stock prices correlate with trading volume?')">
+                Do higher stock prices correlate with trading volume?
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setExample(question) {
+            document.getElementById('questionInput').value = question;
+        }
+        
+        async function analyzeQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const question = questionInput.value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            
+            // Reset UI
+            results.style.display = 'none';
+            error.style.display = 'none';
+            
+            if (!question) {
+                showError('Please enter a research question');
+                return;
+            }
+            
+            // Show loading state
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '⏳ Processing...';
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.results);
+                } else {
+                    showError(data.error || 'Analysis failed');
+                }
+            } catch (err) {
+                showError('Failed to connect to server. Make sure the Flask app is running on port 5000.');
+                console.error('Error:', err);
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🚀 Analyze Research Question';
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsContent = document.getElementById('resultsContent');
+            const badge = data.dataset_source === 'kaggle' ? 
+                '<span class="badge">Kaggle</span>' : 
+                '<span class="badge simulated">Simulated</span>';
+            
+            resultsContent.innerHTML = `
+                <div class="result-section">
+                    <div class="result-label">🎯 Hypothesis:</div>
+                    <div class="result-value">${data.hypothesis || 'N/A'}</div>
+                </div>
+                
+                <div class="result-section">
+                    <div class="result-label">📊 Dataset Used: ${badge}</div>
+                    <div class="result-value">${data.dataset_used || 'N/A'}</div>
+                </div>
+                
+                <div class="result-section">
+                    <div class="result-label">🎯 Target Variable:</div>
+                    <div class="result-value">${data.target_variable || 'N/A'}</div>
+                </div>
+                
+                <div class="result-section">
+                    <div class="result-label">📈 Predictor Variables:</div>
+                    <div class="result-value">${formatPredictors(data.predictor_variables)}</div>
+                </div>
+                
+                <div class="explanation">
+                    <h3>🧠 AI Analysis & Explanation</h3>
+                    <div style="line-height: 1.6; white-space: pre-wrap;">${data.explanation || 'No explanation generated'}</div>
+                </div>
+            `;
+            
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function formatPredictors(predictors) {
+            if (Array.isArray(predictors)) {
+                return predictors.join(', ');
+            }
+            return predictors || 'N/A';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+            errorDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Allow Ctrl+Enter to submit
+        document.getElementById('questionInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                analyzeQuestion();
+            }
+        });
+        
+        // Test server connection on page load
+        fetch('/api/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Server connection successful:', data.message);
+            })
+            .catch(err => {
+                console.error('❌ Server connection failed:', err);
+                showError('Cannot connect to server. Please make sure the Flask app is running.');
+            });
+    </script>
+</body>
+</html> 

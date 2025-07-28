@@ -59,28 +59,48 @@ Generate Python code using pandas and numpy to simulate a realistic dataset for 
 
 "{question}"
 
-It should have ~100 rows and 3–5 relevant columns. Save it to a CSV file named "simulated.csv".
-Only return the code. Do NOT include markdown formatting or explanations.
+Requirements:
+- Create a DataFrame called 'df' with ~100 rows and 3-5 relevant columns
+- Include at least 2 numeric columns for statistical analysis
+- Add some realistic noise and variation to the data
+- DO NOT save the CSV in the code - just create the DataFrame
+
+Only return the Python code to create the DataFrame. No explanations or markdown.
 """
     code = llm.invoke(sim_prompt).content.strip()
 
+    # Clean up code if it has markdown formatting
     if code.startswith("```"):
-        code = code.strip("`").split("\n", 1)[-1]
+        lines = code.split("\n")
+        code = "\n".join(line for line in lines if not line.startswith("```"))
 
-    output_path = os.path.join(output_dir, "simulated.csv")
+    output_path = os.path.join(output_dir, "simulated_dataset.csv")
     try:
+        # Execute the code to create the DataFrame
         globals_dict = {
             "pd": pd,
             "np": np,
             "os": os,
             "__name__": "__main__"
         }
-        exec(code + f"\ndf.to_csv(r'{output_path}', index=False)", globals_dict)
-        print("🧪 Simulated dataset saved as:", output_path)
-        return output_path
+        
+        exec(code, globals_dict)
+        
+        # Get the DataFrame and save it
+        df = globals_dict.get('df')
+        if df is not None and isinstance(df, pd.DataFrame):
+            df.to_csv(output_path, index=False)
+            print(f"🧪 Simulated dataset saved: {output_path}")
+            print(f"📊 Dataset shape: {df.shape}")
+            print(f"📋 Columns: {list(df.columns)}")
+            return output_path
+        else:
+            print("❌ Failed to create DataFrame from generated code")
+            return None
+            
     except Exception as e:
         print("❌ Failed to run simulation code:", e)
-        print("🔎 Code was:\n", code)
+        print("🔎 Generated code was:\n", code)
         return None
 
 # --- Entry Point ---
