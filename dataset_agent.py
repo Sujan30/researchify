@@ -12,7 +12,11 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 # Initialize GPT-4
 llm = ChatOpenAI(model="gpt-4", temperature=0, openai_api_key=openai_api_key)
 
-def search_kaggle_and_download(question: str, download_dir: str = "kaggle_datasets") -> list:
+def search_kaggle_and_download(question: str, download_dir: str = "kaggle_datasets") -> dict:
+    """
+    Search Kaggle for the best dataset related to the research question and download it.
+    Returns a dict with CSV path and dataset info if successful, None otherwise.
+    """
     os.makedirs(download_dir, exist_ok=True)
 
     # ✅ Updated prompt: concise keyword sets for Kaggle
@@ -26,30 +30,61 @@ Only return the raw keywords. No explanations.
 """
     keywords_list = llm.invoke(prompt).content.strip().splitlines()
 
-    datasets = []
+    # Try each keyword combination until we find datasets
+    best_dataset = None
     for keywords in keywords_list:
         print(f"🔍 Searching Kaggle for: {keywords}")
         try:
             datasets = kaggle.api.dataset_list(search=keywords, sort_by="hottest")
+            if datasets:
+                # Take the first (best) dataset
+                best_dataset = datasets[0]
+                print(f"📊 Found best dataset: {best_dataset.title}")
+                break
         except Exception as e:
             print(f"⚠️ Kaggle search failed for '{keywords}': {e}")
-        if datasets:
-            break
+            continue
 
-    downloaded = []
-    if datasets:
-        for dataset in datasets[:3]:
-            try:
-                dataset_ref = dataset.ref
-                print(f"📥 Downloading: {dataset_ref}")
-                name = dataset_ref.replace("/", "__")
-                out_path = os.path.join(download_dir, name)
-                os.makedirs(out_path, exist_ok=True)
-                kaggle.api.dataset_download_files(dataset_ref, path=out_path, unzip=True)
-                downloaded.append(dataset_ref)
-            except Exception as e:
-                print(f"❌ Failed to download {dataset_ref}: {e}")
-    return downloaded
+    if not best_dataset:
+        print("❌ No datasets found on Kaggle for any keyword combination")
+        return None
+
+    # Download the best dataset
+    try:
+        dataset_ref = best_dataset.ref
+        print(f"📥 Downloading best dataset: {dataset_ref}")
+        name = dataset_ref.replace("/", "__")
+        out_path = os.path.join(download_dir, name)
+        os.makedirs(out_path, exist_ok=True)
+        kaggle.api.dataset_download_files(dataset_ref, path=out_path, unzip=True)
+        
+        # Find and return the first CSV file in the downloaded dataset
+        csv_path = find_csv_in_directory(out_path)
+        if csv_path:
+            print(f"✅ Successfully downloaded dataset with CSV: {csv_path}")
+            return {
+                'csv_path': csv_path,
+                'dataset_title': best_dataset.title,
+                'dataset_ref': dataset_ref,
+                'dataset_url': f"https://www.kaggle.com/datasets/{dataset_ref}",
+                'download_count': getattr(best_dataset, 'downloadCount', 0),
+                'vote_count': getattr(best_dataset, 'voteCount', 0)
+            }
+        else:
+            print("⚠️ Downloaded dataset contains no CSV files")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Failed to download {dataset_ref}: {e}")
+        return None
+
+def find_csv_in_directory(directory: str) -> str:
+    """Find the first CSV file in a directory (recursively)"""
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.csv'):
+                return os.path.join(root, file)
+    return None
 
 def simulate_dataset(question: str, output_dir: str = "simulated_datasets") -> str:
     os.makedirs(output_dir, exist_ok=True)
@@ -113,14 +148,14 @@ if __name__ == "__main__":
         exit()
 
     print("\n🤖 Searching for datasets related to your question...")
-    downloaded = search_kaggle_and_download(question)
+    dataset_info = search_kaggle_and_download(question)
 
-    if downloaded:
-        print("\n✅ Downloaded Kaggle datasets:")
-        for d in downloaded:
-            print(f"- {d}")
+    if dataset_info:
+        print(f"\n✅ Downloaded dataset: {dataset_info['dataset_title']}")
+        print(f"📁 CSV saved to: {dataset_info['csv_path']}")
+        print(f"🔗 View on Kaggle: {dataset_info['dataset_url']}")
     else:
-        print("\n⚠️ No datasets found on Kaggle. Simulating one instead...")
+        print("\n⚠️ No dataset found on Kaggle. Simulating one instead...")
         simulated_csv = simulate_dataset(question)
         if simulated_csv:
             print(f"✅ Simulated dataset saved to: {simulated_csv}")
