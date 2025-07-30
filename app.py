@@ -2,20 +2,11 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
 import json
-from dataset_agent import search_kaggle_and_download, simulate_dataset
+from dataset_agent import search_kaggle_and_download
 from researcher import Agent2
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend-backend communication
-
-def find_csv_files(directory):
-    """Find all CSV files in a directory"""
-    csv_files = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.csv'):
-                csv_files.append(os.path.join(root, file))
-    return csv_files
 
 @app.route('/')
 def index():
@@ -32,32 +23,16 @@ def analyze_research_question():
         if not research_question:
             return jsonify({'error': 'No research question provided'}), 400
         
-        # Step 1: Agent 1 - Find or create dataset
+        # Step 1: Agent 1 - Find and download the best dataset from Kaggle
         print(f"Processing question: {research_question}")
         
-        # Try to download from Kaggle first
-        downloaded_datasets = search_kaggle_and_download(research_question, "datasets")
+        dataset_info = search_kaggle_and_download(research_question, "datasets")
         
-        dataset_path = None
-        dataset_source = None
+        if not dataset_info:
+            return jsonify({'error': 'No suitable dataset found on Kaggle for this research question'}), 404
         
-        if downloaded_datasets:
-            print("Found datasets on Kaggle!")
-            csv_files = find_csv_files("datasets")
-            if csv_files:
-                dataset_path = csv_files[0]
-                dataset_source = "kaggle"
-            else:
-                print("No CSV files found in downloaded datasets.")
-        
-        # If no suitable dataset found, simulate one
-        if not dataset_path:
-            print("Creating simulated dataset...")
-            dataset_path = simulate_dataset(research_question, "datasets")
-            dataset_source = "simulated"
-            
-            if not dataset_path:
-                return jsonify({'error': 'Failed to create dataset'}), 500
+        dataset_path = dataset_info['csv_path']
+        print(f"Found dataset: {dataset_info['dataset_title']}")
         
         # Step 2: Agent 2 - Perform statistical analysis
         print(f"Analyzing with dataset: {dataset_path}")
@@ -69,8 +44,15 @@ def analyze_research_question():
             return jsonify({'error': results['error']}), 500
         
         # Add dataset source info to results
-        results['dataset_source'] = dataset_source
+        results['dataset_source'] = "kaggle"
         results['dataset_path'] = os.path.basename(dataset_path)
+        results['kaggle_dataset'] = {
+            'title': dataset_info['dataset_title'],
+            'url': dataset_info['dataset_url'],
+            'ref': dataset_info['dataset_ref'],
+            'downloads': dataset_info['download_count'],
+            'votes': dataset_info['vote_count']
+        }
         
         return jsonify({
             'success': True,

@@ -138,6 +138,38 @@
             background: #FF9800;
         }
         
+        .kaggle-link {
+            background: #20BEFF;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .kaggle-link:hover {
+            background: #1a9fd9;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .kaggle-info {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #20BEFF;
+            margin-top: 15px;
+        }
+        
+        .dataset-stats {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+        
         .examples {
             margin-top: 20px;
             padding: 15px;
@@ -271,6 +303,30 @@
                 '<span class="badge">Kaggle</span>' : 
                 '<span class="badge simulated">Simulated</span>';
             
+            let kaggleSection = '';
+            if (data.kaggle_dataset) {
+                const downloads = data.kaggle_dataset.downloads || 0;
+                const votes = data.kaggle_dataset.votes || 0;
+                const statsText = downloads > 0 || votes > 0 ? 
+                    `📥 ${downloads.toLocaleString()} downloads • 👍 ${votes.toLocaleString()} votes` :
+                    '📊 Dataset statistics not available';
+                
+                kaggleSection = `
+                    <div class="kaggle-info">
+                        <div class="result-label">🔗 Source Dataset:</div>
+                        <div style="margin-top: 8px;">
+                            <strong>${data.kaggle_dataset.title}</strong>
+                            <div class="dataset-stats">
+                                ${statsText}
+                            </div>
+                        </div>
+                        <a href="${data.kaggle_dataset.url}" target="_blank" class="kaggle-link">
+                            📊 View Dataset on Kaggle
+                        </a>
+                    </div>
+                `;
+            }
+            
             resultsContent.innerHTML = `
                 <div class="result-section">
                     <div class="result-label">🎯 Hypothesis:</div>
@@ -281,6 +337,8 @@
                     <div class="result-label">📊 Dataset Used: ${badge}</div>
                     <div class="result-value">${data.dataset_used || 'N/A'}</div>
                 </div>
+                
+                ${kaggleSection}
                 
                 <div class="result-section">
                     <div class="result-label">🎯 Target Variable:</div>
